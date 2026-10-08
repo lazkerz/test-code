@@ -4,7 +4,7 @@ REST API dengan Laravel, MySQL, dan Laravel Sanctum: posts, users, autentikasi t
 
 ## Stack
 
-- Laravel (versi stabil terbaru), PHP 8.2+
+- Laravel 13, PHP 8.3+
 - MySQL 8
 - Laravel Sanctum (token auth)
 - Queue driver `database`
