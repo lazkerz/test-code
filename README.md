@@ -105,4 +105,4 @@ Cakupan: Posts (CRUD, otorisasi, validasi, pagination), Users/Auth (register, lo
 - [`docs/API.md`](docs/API.md): referensi endpoint dengan contoh request/response
 - [`docs/openapi.yaml`](docs/openapi.yaml): spesifikasi OpenAPI 3 (bisa dibuka di Swagger Editor)
 - [`docs/postman_collection.json`](docs/postman_collection.json): Postman collection (lihat bagian di bawah)
-- [`docs/PENJELASAN.md`](docs/PENJELASAN.md): penjelasan arsitektur dan keputusan desain
+
