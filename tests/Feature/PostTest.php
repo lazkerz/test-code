@@ -101,4 +101,5 @@ class PostTest extends TestCase
 
         $this->assertDatabaseMissing('posts', ['id' => $post->id]);
     }
+
 }

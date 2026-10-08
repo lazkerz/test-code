@@ -13,7 +13,7 @@ Route::get('weather', WeatherController::class)->middleware('throttle:60,1');
 
 Route::apiResource('posts', PostController::class)->only(['index', 'show']);
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
     Route::post('logout', [AuthController::class, 'logout']);
 
     Route::apiResource('posts', PostController::class)->only(['store', 'update', 'destroy']);

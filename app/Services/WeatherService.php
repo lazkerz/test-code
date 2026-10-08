@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Exceptions\WeatherUnavailableException;
 use Carbon\Carbon;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Http\Client\RequestException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -12,8 +14,10 @@ use Illuminate\Support\Facades\Log;
 class WeatherService
 {
     private const CACHE_KEY = 'weather.current';
-
     private const STALE_KEY = 'weather.last_known';
+    private const COOLDOWN_KEY = 'weather.cooldown';
+    private const LOCK_KEY = 'weather.refresh';
+
 
     public function current(): array
     {
@@ -23,18 +27,31 @@ class WeatherService
             return $cached;
         }
 
-        try {
-            return $this->refresh();
-        } catch (WeatherUnavailableException $e) {
+        if (Cache::has(self::COOLDOWN_KEY)) {
             $stale = Cache::get(self::STALE_KEY);
 
             if ($stale === null) {
-                throw $e;
+                throw new WeatherUnavailableException('Weather service is unavailable and no cached data exists.');
             }
 
             return $stale + ['stale' => true];
         }
+
+
+        try {
+            return Cache::lock(self::LOCK_KEY, 10)->block(5, function () {
+                return Cache::get(self::CACHE_KEY) ?? $this->refresh();
+            });
+        } catch (WeatherUnavailableException $e) {
+            Cache::put(self::COOLDOWN_KEY, true, config('weather.cooldown_ttl'));
+
+            return $this->stale($e);
+        } catch (LockTimeoutException $e) {
+            return $this->stale(new WeatherUnavailableException('Weather service is currently locked for refresh.'));
+        }
     }
+
+    
 
     public function refresh(): array
     {
@@ -42,8 +59,20 @@ class WeatherService
 
         Cache::put(self::CACHE_KEY, $data, config('weather.cache_ttl'));
         Cache::put(self::STALE_KEY, $data, config('weather.stale_ttl'));
+        Cache::forget(self::COOLDOWN_KEY);
 
         return $data;
+    }
+
+    private function stale(WeatherUnavailableException $exception): array
+    {
+        $stale = Cache::get(self::STALE_KEY);
+
+        if ($stale === null) {
+            throw $exception;
+        }
+
+        return $stale + ['stale' => true];
     }
 
     private function fetch(): array
@@ -57,14 +86,19 @@ class WeatherService
         try {
             $response = Http::baseUrl(config('weather.base_url'))
                 ->timeout(config('weather.timeout'))
-                ->retry(2, 200, throw: false)
+                ->retry(2, 200, function (\Throwable $e){
+                    return $e instanceof ConnectionException 
+                        || ( $e instanceof RequestException && $e->response?->serverError()
+                    );
+                }, throw: false)
                 ->get('weather', [
                     'q' => config('weather.city'),
                     'units' => config('weather.units'),
                     'appid' => $key,
                 ]);
         } catch (ConnectionException $e) {
-            Log::warning('Weather API unreachable', ['error' => $e->getMessage()]);
+            // Log::warning('Weather API unreachable', ['error' => $e->getMessage()]);
+            Log::warning('Weather API unreachable', ['exception' => $e::class]);
 
             throw new WeatherUnavailableException('Weather service is unreachable.', 0, $e);
         }

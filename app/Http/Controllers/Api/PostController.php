@@ -18,11 +18,23 @@ class PostController extends Controller
     {
         $validated = $request->validate([
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
+            'search' => ['sometimes', 'string', 'max:100'],
+            'user_id' => ['sometimes', 'integer', 'exists:users,id'],
         ]);
 
         $posts = Post::with('user')
+            ->when($validated['search'] ?? null, function ($query, $search) {
+                $query->where(function ($query) use ($search) {
+                    $query->where('title', 'like', "%{$search}%")
+                        ->orWhere('body', 'like', "%{$search}%");
+                });
+            })
+            ->when($validated['user_id'] ?? null, function ($query, $userId) {
+                $query->where('user_id', $userId);
+            })
             ->latest('id')
-            ->paginate($validated['per_page'] ?? 15);
+            ->paginate($validated['per_page'] ?? 15)
+            ->withQueryString();
 
         return PostResource::collection($posts);
     }

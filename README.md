@@ -4,7 +4,7 @@ REST API dengan Laravel, MySQL, dan Laravel Sanctum: posts, users, autentikasi t
 
 ## Stack
 
-- Laravel 13, PHP 8.3+
+- Laravel (versi stabil terbaru), PHP 8.2+
 - MySQL 8
 - Laravel Sanctum (token auth)
 - Queue driver `database`
@@ -105,4 +105,4 @@ Cakupan: Posts (CRUD, otorisasi, validasi, pagination), Users/Auth (register, lo
 - [`docs/API.md`](docs/API.md): referensi endpoint dengan contoh request/response
 - [`docs/openapi.yaml`](docs/openapi.yaml): spesifikasi OpenAPI 3 (bisa dibuka di Swagger Editor)
 - [`docs/postman_collection.json`](docs/postman_collection.json): Postman collection (lihat bagian di bawah)
-
+- [`docs/PENJELASAN.md`](docs/PENJELASAN.md): penjelasan arsitektur dan keputusan desain
